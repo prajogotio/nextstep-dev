@@ -538,7 +538,9 @@ function renderAngleBar() {
 
 	var p = state.player[CONST.MAIN_PLAYER];
 	var d = [p.dir[0] * p.orientation, p.dir[1] * p.orientation];
-	rotate(d, p.angle * p.orientation / 180 * Math.PI);
+	d[0] = Math.floor(d[0] * 100)/100;
+	d[1] = Math.floor(d[1] * 100)/100;
+	rotate(d, Math.floor(p.angle) * p.orientation / 180 * Math.PI);
 	var theta = Math.floor(Math.atan2(d[1], d[0])/Math.PI*180);
 	theta = -theta;
 	if (theta > 90) theta = 180 - theta;

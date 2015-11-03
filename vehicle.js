@@ -138,12 +138,16 @@ Player.prototype.commandHandler = function(state) {
 
 Player.prototype.createBullet = function() {
 	var d = [this.orientation * this.dir[0], this.orientation * this.dir[1]];
-	rotate(d, this.orientation * this.angle * Math.PI/180);
+	d[0] = Math.floor(d[0] * 100)/100;
+	d[1] = Math.floor(d[1] * 100)/100;
+	rotate(d, this.orientation * Math.floor(this.angle) * Math.PI/180);
+	var theta = Math.floor(Math.atan2(d[1], d[0])/Math.PI*180);
+	d[0] = Math.cos(theta/180*Math.PI);
+	d[1] = Math.sin(theta/180*Math.PI);
 	var x = this.x + d[0] * (this.BARREL_WIDTH + 20);
 	var y = this.y + d[1] * (this.BARREL_WIDTH + 20);
 	var r = this.power / CONST.MAX_POWER * this.MAX_BULLET_THRUST;
 	var v = [r * d[0], r * d[1]];
-
 	return this.bulletFactory(x, y, v);
 }
 
