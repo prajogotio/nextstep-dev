@@ -38,16 +38,26 @@ Player.prototype.render = function(g) {
 	var theta = Math.atan2(this.dir[1], this.dir[0]);
 
 	g.save();
-	g.translate(this.x, this.y);
+	g.translate(this.x, this.y);	
 
 	g.save();
 	g.rotate(theta);
+	this.renderAngleProtractor(g);
 	this.renderBody(g);
 	this.renderBarrel(g);
 	g.restore();
 
 	this.renderNameCaption(g);
 	this.renderHealthBar(g);
+	g.restore();
+}
+
+Player.prototype.renderAngleProtractor = function(g) {
+	g.save();
+	g.scale(this.orientation, 1);
+	g.translate(44, -44);
+	g.globalAlpha = 0.75;
+	gameAsset.renderAsset("angle_protractor", g);
 	g.restore();
 }
 
@@ -113,6 +123,7 @@ Player.prototype.commandHandler = function(state) {
 	}
 	if (this.command["CHARGING_POWER"]) {
 		this.power += CONST.POWER_DELTA;
+		if (this.power > CONST.MAX_POWER) this.power = CONST.MAX_POWER;
 		if (this == state.player[CONST.MAIN_PLAYER]) {
 			state.powerBar.power = this.power;
 		}

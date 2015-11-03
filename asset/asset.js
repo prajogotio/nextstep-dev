@@ -71,5 +71,56 @@ var gameAsset = (function() {
 	g.stroke();
 	g.restore();
 
+
+	// degree circle
+	asset["degree_circle"] = {
+		offsetX : 0,
+		offsetY : 100,
+		width : 30,
+		height : 30,
+	}
+	g.save();
+	g.translate(0, 100);
+	g.font = "bold 20px Arial";
+	g.fillStyle = "white";
+	g.strokeStyle = "black";
+	g.lineWidth = 1;
+	g.fillText("o", 10, 15);
+	g.strokeText("o", 10, 15);
+	g.restore();
+
+	// angle protractor
+		asset["angle_protractor"] = {
+		offsetX : 30,
+		offsetY : 100,
+		width : 100,
+		height : 100,
+	}
+	g.save();
+	g.translate(30, 100);
+
+	g.fillStyle = "rgba(240, 240, 0, 0.3)";
+	g.beginPath();
+	g.moveTo(0,100);
+	//g.lineTo(80,100);
+	g.arc(0, 100, 80, 0, Math.PI/2, true);
+	//g.lineTo(0,80);
+	g.closePath();
+	g.fill();
+
+	
+
+	g.beginPath();
+	g.fillStyle = "rgba(0,0,0,0.5)";
+	g.strokeStyle = "rgba(0,0,0,0.5)";
+	g.lineWidth = 2;
+	g.arc(0, 100, 80, 0, Math.PI/2, true);
+	g.stroke();
+	g.fillRect(0, 20, 2, 30);
+	g.fillRect(50, 98, 30, 2);
+
+	g.restore();
+
+
 	return asset;
 })();

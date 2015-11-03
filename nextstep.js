@@ -10,6 +10,7 @@ var state = {
 	terrainOffset : [100, 0],
 	powerBar : {
 		power : 0,
+		marker : 0,
 	},
 	bullets : [],
 	explosions : [],
@@ -40,13 +41,15 @@ var CONST = {
 	BARREL_HEIGHT: 16,
 	BARREL_COLOR : "#fff",
 	CONTROL_BAR_COLOR : "rgba(0,0,0,0.6)",
-	CONTROL_BAR_HEIGHT : 80,
-	MAX_POWER : 1200,
+	CONTROL_BAR_HEIGHT : 100,
+	CONTROL_BAR_WIDTH : 1000,
+	MAX_POWER : 1500,
 	POWER_BAR_HEIGHT : 40,
 	POWER_BAR_COLOR : "#000",
 	POWER_BAR_RATIO : 0.8,
 	POWER_DELTA : 10,
 	POWER_BAR_ACTIVE_COLOR : "#f00",
+	ANGLE_BAR_WIDTH : 80,
 	BULLET_RADIUS : 10,
 	MAX_BULLET_THRUST : 50,
 	MAX_WIND_STRENGTH : 10,
@@ -93,18 +96,26 @@ function startGame() {
 
 }
 
+function computeMouseOffset(e) {
+	return [e.pageX - state.display.offsetLeft, e.pageY - state.display.offsetTop];
+}
+
 function registerEventListener() {
 	addEventListener("mousedown", function(e) {
+		if (onControlBar(e)) {
+			handleControlBarMouseClick(e);
+			return;
+		}
 		state.viewMode["SHIFT_VIEW_MODE"] = true;
-		state.shiftOrigin = [e.pageX - state.display.offsetLeft, e.pageY - state.display.offsetTop];
-		state.mouseOffset = [e.pageX - state.display.offsetLeft, e.pageY - state.display.offsetTop]
+		state.shiftOrigin = computeMouseOffset(e);
+		state.mouseOffset = computeMouseOffset(e);
 		state.prevViewOffset = [state.viewOffset[0], state.viewOffset[1]];
 	});
 	addEventListener("mouseup", function(e) {
 		state.viewMode["SHIFT_VIEW_MODE"] = false;
 	})
 	addEventListener("mousemove", function(e) {
-		state.mouseOffset = [e.pageX - state.display.offsetLeft, e.pageY - state.display.offsetTop];
+		state.mouseOffset = computeMouseOffset(e);
 	});
 	addEventListener("keydown", function(e) {
 		if(e.which == 37) {
@@ -132,6 +143,25 @@ function registerEventListener() {
 			state.player[CONST.MAIN_PLAYER].command["SHOOT"] = true;
 		}
 	});
+}
+
+function onControlBar(e) {
+	var offset = computeMouseOffset(e);
+	var x = (state.display.width - CONST.CONTROL_BAR_WIDTH)/2;
+	var y = state.display.height - CONST.CONTROL_BAR_HEIGHT;
+	return (x < offset[0] && offset[0] < x + CONST.CONTROL_BAR_WIDTH && 
+		y < offset[1] && offset[1] < y + CONST.CONTROL_BAR_HEIGHT);
+}
+
+function handleControlBarMouseClick(e) {
+	var offset = computeMouseOffset(e);
+	var x = (state.display.width - CONST.CONTROL_BAR_WIDTH)/2;
+	var y = state.display.height - CONST.CONTROL_BAR_HEIGHT;
+	offset[0] -= x;
+	offset[1] -= y;
+	if (offset[1] > CONST.CONTROL_BAR_HEIGHT - CONST.POWER_BAR_HEIGHT) {
+		setPowerMarker(offset[0]/CONST.CONTROL_BAR_WIDTH);
+	}
 }
 
 function update() {
@@ -432,10 +462,10 @@ function renderControlBar() {
 	g.save();
 	g.fillStyle = CONST.CONTROL_BAR_COLOR;
 	g.lineWidth = 3;
-	g.fillRect(0, state.display.height - CONST.CONTROL_BAR_HEIGHT, state.display.width, CONST.CONTROL_BAR_HEIGHT);
+	g.fillRect((state.display.width - CONST.CONTROL_BAR_WIDTH)/2, state.display.height - CONST.CONTROL_BAR_HEIGHT, CONST.CONTROL_BAR_WIDTH, CONST.CONTROL_BAR_HEIGHT);
 	renderPowerBar();
 	renderWindCompass();
-
+	renderAngleBar();
 	g.restore();
 }
 
@@ -475,14 +505,60 @@ function createText(text, size, color, lineWidth, strokeColor, font) {
 	return buffer;
 }
 
+function setPowerMarker(x) {
+	state.powerBar.marker = x;
+}
+
 function renderPowerBar() {
 	var g = state.g;
 	g.save();
 	g.fillStyle = CONST.POWER_BAR_COLOR;
-	g.fillRect(state.display.width * (1-CONST.POWER_BAR_RATIO), state.display.height - CONST.POWER_BAR_HEIGHT, state.display.width * CONST.POWER_BAR_RATIO, CONST.POWER_BAR_HEIGHT);
-	var activePowerWidth = (state.display.width * CONST.POWER_BAR_RATIO - 8) * state.powerBar.power / CONST.MAX_POWER;
+	var x = (state.display.width - CONST.CONTROL_BAR_WIDTH)/2;
+	var y = state.display.height - CONST.POWER_BAR_HEIGHT;
+	g.fillRect(x, y, CONST.CONTROL_BAR_WIDTH, CONST.POWER_BAR_HEIGHT);
+	var activePowerWidth = (CONST.CONTROL_BAR_WIDTH - 8) * state.powerBar.power / CONST.MAX_POWER;
 	g.fillStyle = CONST.POWER_BAR_ACTIVE_COLOR;
-	g.fillRect(state.display.width * (1-CONST.POWER_BAR_RATIO) + 4, state.display.height - CONST.POWER_BAR_HEIGHT + 4, activePowerWidth, CONST.POWER_BAR_HEIGHT - 8);
+	g.fillRect(x + 4, y + 4, activePowerWidth, CONST.POWER_BAR_HEIGHT - 8);
+
+	g.strokeStyle = "white";
+	g.lineWidth = 2;
+	for (var i = 0; i < 4; ++i) {
+		g.strokeRect(x+1+i*CONST.CONTROL_BAR_WIDTH/4, y+1, (CONST.CONTROL_BAR_WIDTH-5)/4, CONST.POWER_BAR_HEIGHT-2);
+	}
+	g.fillStyle = "yellow"
+	g.fillRect(x + state.powerBar.marker * CONST.CONTROL_BAR_WIDTH, y+1, 3, CONST.POWER_BAR_HEIGHT-2);
+	g.restore();
+}
+
+function renderAngleBar() {
+	var g = state.g;
+	var x = (state.display.width - CONST.CONTROL_BAR_WIDTH)/2;
+	var y = state.display.height - CONST.CONTROL_BAR_HEIGHT;
+	var h = CONST.CONTROL_BAR_HEIGHT - CONST.POWER_BAR_HEIGHT;
+
+	var p = state.player[CONST.MAIN_PLAYER];
+	var d = [p.dir[0] * p.orientation, p.dir[1] * p.orientation];
+	rotate(d, p.angle * p.orientation / 180 * Math.PI);
+	var theta = Math.floor(Math.atan2(d[1], d[0])/Math.PI*180);
+	theta = -theta;
+	if (theta > 90) theta = 180 - theta;
+	if (theta < -90) theta = -180 - theta;
+	g.fillStyle = "rgba(244, 244, 0, 0.6)";
+	g.fillRect(x, y, CONST.ANGLE_BAR_WIDTH, h);
+	g.fillStyle = "white";
+	if (theta < 0) {
+		theta = -theta;
+		g.fillStyle = "rgba(244, 10, 0, 0.6)";
+	}
+	g.strokeStyle = "black";
+	g.font = "bold 45px Arial";
+	g.lineWidth = 2;
+	var offsetY = 45;
+	g.fillText(theta, x + 12, y + offsetY);
+	g.strokeText(theta, x + 12, y + offsetY);
+	g.save();
+	g.translate(x+67, y+16);
+	gameAsset.renderAsset("degree_circle", g);
 	g.restore();
 }
 
