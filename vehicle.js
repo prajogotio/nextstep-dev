@@ -249,3 +249,8 @@ Balroc.prototype.bulletFactory = function(x, y, v){
 	return new HeavyArmor(x, y, v); 
 }
 
+
+
+
+
+

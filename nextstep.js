@@ -176,8 +176,8 @@ function cameraEventsHandler() {
 		if (state.bullets.length == 0) {
 			state.viewMode["LOCKED_BULLET_VIEW_MODE"] = false;
 		} else {
-			state.viewOffset[0] = -state.bullets[0].x + state.display.width/2;
-			state.viewOffset[1] = -state.bullets[0].y + state.display.height/2;
+			state.viewOffset[0] = (-state.bullets[0].x + state.display.width/2)*0.8;
+			state.viewOffset[1] = (-state.bullets[0].y + state.display.height/2)*0.8;
 		}
 	}
 	else if (state.viewMode["LOCKED_PLAYER_VIEW_MODE"]) {
@@ -454,7 +454,7 @@ function renderWindCompass() {
 function setWind(angle, strength) {
 	state.wind.angle = angle;
 	state.wind.strength = strength;
-	state.wind.bufferedCaption = createText(""+strength, 40, "white");
+	state.wind.bufferedCaption = createText(""+strength, 40, "white", 2, "black");
 }
 
 function createText(text, size, color, lineWidth, strokeColor, font) {
