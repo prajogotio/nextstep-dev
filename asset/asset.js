@@ -42,5 +42,34 @@ var gameAsset = (function() {
 	g.stroke();
 	g.restore();
 
+
+
+	// green terrain bits
+	asset["green_terrain_bits"] = {
+		offsetX : 100,
+		offsetY : 0,
+		width : 40,
+		height : 40,
+	}
+	g.save();
+	g.fillStyle = "green";
+	g.lineWidth = 3;
+	g.translate(100, 0);
+	g.beginPath();
+	g.moveTo(13,9);
+	g.lineTo(7,17);
+	g.lineTo(5,26);
+	g.lineTo(12,32);
+	g.lineTo(20,32);
+	g.lineTo(26,36);
+	g.lineTo(33,31);
+	g.lineTo(32,19);
+	g.lineTo(33,9);
+	g.lineTo(24,8);
+	g.closePath();
+	g.fill();
+	g.stroke();
+	g.restore();
+
 	return asset;
 })();

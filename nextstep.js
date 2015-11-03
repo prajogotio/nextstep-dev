@@ -19,6 +19,7 @@ var state = {
 		strength : 0,
 		bufferedCaption : createText("0", 50, "white", 2, "black"),
 	},
+	terrainBitsName : null,
 };
 
 var CONST = {
@@ -131,6 +132,7 @@ function registerEventListener() {
 }
 
 function initializeAsset() {
+	state.terrainBitsName = "green_terrain_bits";
 	state.terrainBuffer = testAssets.get("test_asset04");
 	state.terrainData = state.terrainBuffer.getContext("2d").getImageData(0, 0, state.terrainBuffer.width, state.terrainBuffer.height);
 
@@ -247,20 +249,27 @@ function computeWindForce() {
 }
 
 function checkBulletCollision(bullet) {
+	var collided = false;
 	var bulletRect = bullet.BULLET_RADIUS * 0.80;
 	for (var i = 0; i < state.player.length; ++i) {
 		var playerRect = state.player[i].PLAYER_HEIGHT/2 * 0.80;
 		if (Math.abs(bullet.x - state.player[i].x) < bulletRect + playerRect &&
 			Math.abs(bullet.y - state.player[i].y) < bulletRect + playerRect) {
-			return true;
+			collided = true;
+			break;
 		}
 	}
 	//terrain
-	return checkCollision([bullet.x, bullet.y]) || 
+	if(checkCollision([bullet.x, bullet.y]) || 
 	checkCollision([bullet.x - bulletRect, bullet.y - bulletRect]) ||
 	checkCollision([bullet.x + bulletRect, bullet.y + bulletRect]) || 
 	checkCollision([bullet.x + bulletRect, bullet.y - bulletRect]) ||
-	checkCollision([bullet.x - bulletRect, bullet.y + bulletRect]);
+	checkCollision([bullet.x - bulletRect, bullet.y + bulletRect]) ) {
+		collided = true;
+		createDestroyedTerrainEffect(bullet.x, bullet.y, state.terrainBitsName);
+	}
+
+	return collided;
 }
 
 function setPlayerState(player, temp) {
@@ -393,7 +402,6 @@ function render() {
 	renderTerrain();
 	renderPlayers();
 	renderBullets();
-	renderExplosions();
 	renderEffects();
 	state.g.restore();
 
@@ -412,16 +420,11 @@ function renderBullets() {
 	}
 }
 
-function renderExplosions() {
-
-}
-
 function renderEffects() {
 	var tmp = [];
 	for (var i = 0; i < state.effects.length; ++i) {
 		state.effects[i].render(state.g);
-		state.effects[i].delta--;
-		if (state.effects[i].delta > 0) tmp.push(state.effects[i]);
+		if (state.effects[i].isAlive) tmp.push(state.effects[i]);
 	}
 	state.effects = tmp;
 }
@@ -496,14 +499,45 @@ function createDamageEffect(x, y, dmg) {
 	damageEffect.x = x;
 	damageEffect.y = y;
 	damageEffect.delta = 40;
+	damageEffect.isAlive = true;
 	damageEffect.caption = createText(""+Math.floor(dmg), 30, "red", 1, "black");
 	damageEffect.render = function(g){
+		if (!damageEffect.isAlive) return;
 		var w = damageEffect.caption.width;
 		var h = damageEffect.caption.height;
 		damageEffect.y -= 1;
 		g.drawImage(damageEffect.caption, 0, 0, w, h, damageEffect.x - w/2, damageEffect.y - h/2, w, h);
+		damageEffect.delta--;
+		if (damageEffect.delta <= 0) damageEffect.isAlive = false;
 	}
 	state.effects.push(damageEffect);
 }
 
+function createDestroyedTerrainEffect(x, y, assetName) {
+	function generator(x, y, spin, dir, assetName) {
+		var effect = {};
+		effect.x = x;
+		effect.y = y;
+		effect.isAlive = true;
+		effect.dir = dir;
+		effect.spin = spin;
+		effect.render = function(g) {
+			effect.dir[1] += CONST.GRAVITY;
+			effect.y += effect.dir[1];
+			effect.x += effect.dir[0];
+			effect.spin += (effect.spin > 0 ? 1 : -1) * Math.PI/180;
+			g.save();
+			g.translate(effect.x, effect.y);
+			g.rotate(effect.spin);
+			gameAsset.renderAsset(assetName, g);
+			g.restore();
+			if (effect.y > CONST.WORLD_HEIGHT) effect.isAlive = false;
+		}
+		return effect;
+	}
+	var force = 15;
+	for (var i = 0; i < 3; ++ i) {
+		state.effects.push(generator(x+Math.random()*force-force/2, y+Math.random()*force-force/2, Math.random()-0.5, [Math.random()*force-force/2, Math.random()*force-force/2], assetName));
+	}
+}
 
