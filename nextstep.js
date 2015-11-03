@@ -53,10 +53,13 @@ var CONST = {
 	EXPLOSION_RADIUS : 60,
 	WIND_STRENGTH_CALLIBRATOR : 0.02,
 	HEALTH_BAR_LENGTH : 80,
+	VIEW_SHIFT_RATIO : 1.5,
 };
 
 function initialize() {
 	state.display = document.getElementById("display");
+	state.display.width = window.innerWidth;
+	state.display.height = window.innerHeight;
 	state.g = display.getContext("2d");
 	initializeAsset();
 }
@@ -182,7 +185,7 @@ function IOEventsHandler() {
 		state.viewMode["LOCKED_PLAYER_VIEW_MODE"] = false;
 		var dx = state.mouseOffset[0] - state.shiftOrigin[0];
 		var dy = state.mouseOffset[1] - state.shiftOrigin[1];
-		state.viewOffset = [state.prevViewOffset[0] + dx, state.prevViewOffset[1] + dy];
+		state.viewOffset = [state.prevViewOffset[0] + dx * VIEW_SHIFT_RATIO, state.prevViewOffset[1] + dy * VIEW_SHIFT_RATIO];
 	}
 	else if (state.viewMode["LOCKED_BULLET_VIEW_MODE"]) {
 		if (state.bullets.length == 0) {
