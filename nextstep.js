@@ -34,8 +34,8 @@ var CONST = {
 	ANGLE_UPPER_LIMIT : 55,
 	GRAVITY : 0.28,
 	OPAQUE_VALUE : 80,
-	WORLD_WIDTH : 3000,
-	WORLD_HEIGHT : 2000,
+	WORLD_WIDTH : 2000,
+	WORLD_HEIGHT : 1000,
 	BARREL_WIDTH : 50,
 	BARREL_HEIGHT: 16,
 	BARREL_COLOR : "#fff",
@@ -54,6 +54,7 @@ var CONST = {
 	WIND_STRENGTH_CALLIBRATOR : 0.02,
 	HEALTH_BAR_LENGTH : 80,
 	VIEW_SHIFT_RATIO : 1.5,
+	CAMERA_VIEW_UPPERLIMIT : 800,
 };
 
 function initialize() {
@@ -150,7 +151,7 @@ function spawnPlayers() {
 }
 
 function update() {
-	IOEventsHandler();
+	cameraEventsHandler();
 
 	updateExplosions();
 	updatePlayers();
@@ -180,12 +181,12 @@ function updateBullets() {
 	state.bullets = tmp;
 }
 
-function IOEventsHandler() {
+function cameraEventsHandler() {
 	if (state.viewMode["SHIFT_VIEW_MODE"]) {
 		state.viewMode["LOCKED_PLAYER_VIEW_MODE"] = false;
 		var dx = state.mouseOffset[0] - state.shiftOrigin[0];
 		var dy = state.mouseOffset[1] - state.shiftOrigin[1];
-		state.viewOffset = [state.prevViewOffset[0] + dx * VIEW_SHIFT_RATIO, state.prevViewOffset[1] + dy * VIEW_SHIFT_RATIO];
+		state.viewOffset = [state.prevViewOffset[0] + dx * CONST.VIEW_SHIFT_RATIO, state.prevViewOffset[1] + dy * CONST.VIEW_SHIFT_RATIO];
 	}
 	else if (state.viewMode["LOCKED_BULLET_VIEW_MODE"]) {
 		if (state.bullets.length == 0) {
@@ -199,6 +200,10 @@ function IOEventsHandler() {
 		state.viewOffset[0] = -state.player[CONST.MAIN_PLAYER].x + state.display.width/2;
 		state.viewOffset[1] = -state.player[CONST.MAIN_PLAYER].y + state.display.height/2;
 	}
+	if (state.viewOffset[1] > CONST.CAMERA_VIEW_UPPERLIMIT) state.viewOffset[1] = CONST.CAMERA_VIEW_UPPERLIMIT;
+	if (state.viewOffset[1] < -CONST.WORLD_HEIGHT/2) state.viewOffset[1] = -CONST.WORLD_HEIGHT/2;
+	if (state.viewOffset[0] > 0) state.viewOffset[0] = 0;
+	if (state.viewOffset[0] < -CONST.WORLD_WIDTH/2)  state.viewOffset[0] = -CONST.WORLD_WIDTH/2;
 }
 
 function updateExplosion(explosion) {
@@ -269,7 +274,7 @@ function checkBulletCollision(bullet) {
 	checkCollision([bullet.x + bulletRect, bullet.y - bulletRect]) ||
 	checkCollision([bullet.x - bulletRect, bullet.y + bulletRect]) ) {
 		collided = true;
-		createDestroyedTerrainEffect(bullet.x, bullet.y, state.terrainBitsName);
+		createDestroyedTerrainEffect(bullet, state.terrainBitsName);
 	}
 
 	return collided;
@@ -516,7 +521,7 @@ function createDamageEffect(x, y, dmg) {
 	state.effects.push(damageEffect);
 }
 
-function createDestroyedTerrainEffect(x, y, assetName) {
+function createDestroyedTerrainEffect(bullet, assetName) {
 	function generator(x, y, spin, dir, assetName) {
 		var effect = {};
 		effect.x = x;
@@ -540,7 +545,7 @@ function createDestroyedTerrainEffect(x, y, assetName) {
 	}
 	var force = 15;
 	for (var i = 0; i < 3; ++ i) {
-		state.effects.push(generator(x+Math.random()*force-force/2, y+Math.random()*force-force/2, Math.random()-0.5, [Math.random()*force-force/2, Math.random()*force-force/2], assetName));
+		state.effects.push(generator(bullet.x+Math.random()*force-force/2, bullet.y+Math.random()*force-force/2, Math.random()-0.5, [bullet.v[0] + Math.random()*force - force/2, bullet.v[1] + Math.random()*force - force/2], assetName));
 	}
 }
 
