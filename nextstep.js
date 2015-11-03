@@ -55,6 +55,7 @@ var CONST = {
 	HEALTH_BAR_LENGTH : 80,
 	VIEW_SHIFT_RATIO : 1.5,
 	CAMERA_VIEW_UPPERLIMIT : 800,
+	PLAYER_VERTICAL_MOVEMENT_LIMIT : 8,
 };
 
 function initialize() {
@@ -66,22 +67,20 @@ function initialize() {
 }
 
 
-function createPlayer(x, y, color) {
-	var player = {};
-	player.x = x
-	player.y = y
-	player.v = 0;
-	player.color = color;
-	player.thrust = 0;
-	player.dir = [1, 0];
-	player.hp = 1000;
-	player.angle = 45;
-	player.orientation = 1;
-	player.command = {};
-	player.power = 0;
-	player.isAlive = true;
-	return player;
+function initializeAsset() {
+	state.terrainBitsName = "green_terrain_bits";
+	state.terrainBuffer = testAssets.get("test_asset03");
+	state.terrainData = state.terrainBuffer.getContext("2d").getImageData(0, 0, state.terrainBuffer.width, state.terrainBuffer.height);
 }
+
+function spawnPlayers() {
+	var startHeight = 0;
+	state.player.push(new Balroc(state.display.width/2, startHeight, "#fab", "prajogo"));
+	state.player.push(new Player(state.display.width/2 + 300, startHeight, "#8af", "chang_Hong"));
+	state.player.push(new Player(state.display.width/2 + 800, startHeight, "#8e7", "chinjieh"));
+	state.player.push(new Player(state.display.width/2 - 400, startHeight, "#99a", "nigel"));
+}
+
 
 function startGame() {
 	spawnPlayers();
@@ -133,21 +132,6 @@ function registerEventListener() {
 			state.player[CONST.MAIN_PLAYER].command["SHOOT"] = true;
 		}
 	});
-}
-
-function initializeAsset() {
-	state.terrainBitsName = "green_terrain_bits";
-	state.terrainBuffer = testAssets.get("test_asset04");
-	state.terrainData = state.terrainBuffer.getContext("2d").getImageData(0, 0, state.terrainBuffer.width, state.terrainBuffer.height);
-
-}
-
-function spawnPlayers() {
-	var startHeight = 0;
-	state.player.push(new Balroc(state.display.width/2, startHeight, "#fab", "prajogo"));
-	state.player.push(new Player(state.display.width/2 + 300, startHeight, "#8af", "chang_Hong"));
-	state.player.push(new Player(state.display.width/2 + 800, startHeight, "#8e7", "chinjieh"));
-	state.player.push(new Player(state.display.width/2 - 400, startHeight, "#99a", "nigel"));
 }
 
 function update() {

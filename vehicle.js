@@ -9,6 +9,7 @@ function Player(x, y, color, name) {
 	this.BARREL_COLOR = CONST.BARREL_COLOR;
 	this.MAX_BULLET_THRUST = CONST.MAX_BULLET_THRUST;
 	this.MAX_HEALTH_POINT = 1000;
+	this.PLAYER_VERTICAL_MOVEMENT_LIMIT = CONST.PLAYER_VERTICAL_MOVEMENT_LIMIT;
 
 	this.name = name;
 	this.x = x
@@ -163,7 +164,7 @@ Player.prototype.movementUpdate = function() {
 		temp = resolveTerrainCollision(this, temp);
 	}
 
-	setPlayerState(this, temp);
+	if (this.y - temp.y < this.PLAYER_VERTICAL_MOVEMENT_LIMIT) setPlayerState(this, temp);
 }
 
 Player.prototype.receiveDamage = function(damage) {
