@@ -6,8 +6,8 @@ addEventListener("DOMContentLoaded", function() {
 var state = {
 	player : [],
 	viewMode : {},
-	viewOffset : [0, -800],
-	terrainOffset : [100, 1000],
+	viewOffset : [0, 0],
+	terrainOffset : [100, 0],
 	powerBar : {
 		power : 0,
 	},
@@ -33,13 +33,13 @@ var CONST = {
 	GRAVITY : 0.28,
 	OPAQUE_VALUE : 80,
 	WORLD_WIDTH : 3000,
-	WORLD_HEIGHT : 3000,
+	WORLD_HEIGHT : 2000,
 	BARREL_WIDTH : 50,
 	BARREL_HEIGHT: 16,
 	BARREL_COLOR : "#fff",
 	CONTROL_BAR_COLOR : "rgba(0,0,0,0.6)",
 	CONTROL_BAR_HEIGHT : 80,
-	MAX_POWER : 800,
+	MAX_POWER : 1200,
 	POWER_BAR_HEIGHT : 40,
 	POWER_BAR_COLOR : "#000",
 	POWER_BAR_RATIO : 0.8,
@@ -77,15 +77,17 @@ function createPlayer(x, y, color) {
 }
 
 function startGame() {
-	var startHeight = 800;
-	state.player.push(createPlayer(state.display.width/2, startHeight, "#fab"));
-	state.player.push(createPlayer(state.display.width/2 + 300, startHeight, "#8af"));
-	state.player.push(createPlayer(state.display.width/2 + 800, startHeight, "#8e7"));
-	state.player.push(createPlayer(state.display.width/2 - 400, startHeight, "#99a"));
+	spawnPlayers();
+	registerEventListener();
+
 	var timer = setInterval(function(){
 		update();
 		render();
 	}, CONST.TIME_DELTA);
+
+}
+
+function registerEventListener() {
 	addEventListener("mousedown", function(e) {
 		state.viewMode["SHIFT_VIEW_MODE"] = true;
 		state.shiftOrigin = [e.pageX - state.display.offsetLeft, e.pageY - state.display.offsetTop];
@@ -126,6 +128,20 @@ function startGame() {
 	});
 }
 
+function initializeAsset() {
+	state.terrainBuffer = testAssets.get("test_asset04");
+	state.terrainData = state.terrainBuffer.getContext("2d").getImageData(0, 0, state.terrainBuffer.width, state.terrainBuffer.height);
+
+}
+
+function spawnPlayers() {
+	var startHeight = 0;
+	state.player.push(new Player(state.display.width/2, startHeight, "#fab"));
+	state.player.push(new Player(state.display.width/2 + 300, startHeight, "#8af"));
+	state.player.push(new Player(state.display.width/2 + 800, startHeight, "#8e7"));
+	state.player.push(new Player(state.display.width/2 - 400, startHeight, "#99a"));
+}
+
 function update() {
 	for (var i = 0; i < state.explosions.length; ++i) {
 		updateExplosion(state.explosions[i]);
@@ -134,13 +150,13 @@ function update() {
 
 	IOEventsHandler();
 	for(var i = 0; i < state.player.length;++i) {
-		playerCommandHandler(state.player[i]);
-		movementUpdate(state.player[i]);
+		state.player[i].commandHandler(state);
+		state.player[i].movementUpdate();;
 	}
 
 	var tmp = [];
 	for (var i = 0; i < state.bullets.length; ++i) {
-		bulletUpdate(state.bullets[i]);
+		state.bullets[i].update(state);
 		if (state.bullets[i].isAlive) tmp.push(state.bullets[i]);
 	}
 	state.bullets = tmp;
@@ -181,63 +197,6 @@ function updateExplosion(explosion) {
 	state.terrainData = g.getImageData(0, 0, state.terrainBuffer.width, state.terrainBuffer.height);
 }
 
-function playerCommandHandler(player) {
-	if (player.command["ADJUST_ANGLE_UP"]) {
-		player.angle += CONST.ANGLE_DELTA;
-		if (player.angle > CONST.ANGLE_UPPER_LIMIT) player.angle = CONST.ANGLE_UPPER_LIMIT;
-	}
-	if (player.command["ADJUST_ANGLE_DOWN"]) {
-		player.angle -= CONST.ANGLE_DELTA;
-		if (player.angle < CONST.ANGLE_LOWER_LIMIT) player.angle = CONST.ANGLE_LOWER_LIMIT;
-	}
-	if (player.command["CHARGE_POWER"]) {
-		player.command["CHARGING_POWER"] = true;
-		player.command["CHARGE_POWER"] = false;
-		player.power = 0;
-	}
-	if (player.command["CHARGING_POWER"]) {
-		player.power += CONST.POWER_DELTA;
-		if (player == state.player[CONST.MAIN_PLAYER]) {
-			state.powerBar.power = player.power;
-		}
-	}
-	if (player.command["SHOOT"]) {
-		state.bullets.push(createBullet(player));
-		player.command["SHOOT"] = false;
-		state.viewMode["LOCKED_BULLET_VIEW_MODE"] = true;
-		state.viewMode["LOCKED_PLAYER_VIEW_MODE"] = false;
-	}
-
-}
-
-
-function movementUpdate(player) {
-	var temp = {
-		x : player.x,
-		y : player.y,
-		dir : [player.dir[0], player.dir[1]],
-		v : player.v,
-	};
-	temp.v += CONST.GRAVITY;
-	temp.y += temp.v;
-	var pivots = computePivots(temp);
-	if (checkCollision(pivots[0]) || checkCollision(pivots[1])) {
-		temp = resolveTerrainCollision(player, temp);
-	}
-
-	setPlayerState(player, temp);
-
-	pivots = computePivots(temp);
-	if (checkCollision(pivots[0])||checkCollision(pivots[1])) return;
-	temp.x += player.thrust;
-	pivots = computePivots(temp);
-	if (checkCollision(pivots[0]) || checkCollision(pivots[1])) {
-		temp = resolveTerrainCollision(player, temp);
-	}
-
-	setPlayerState(player, temp);
-}
-
 function createExplosion(x, y, radius) {
 	return {
 		"x" : x,
@@ -247,33 +206,16 @@ function createExplosion(x, y, radius) {
 	};
 }
 
-function bulletUpdate(bullet) {
-	if (bullet.x < 0 || bullet.x > CONST.WORLD_WIDTH || bullet.y > CONST.WORLD_HEIGHT) {
-		bullet.isAlive = false;
-	}
-	bullet.x += bullet.v[0];
-	bullet.y += bullet.v[1];
-
-	if (checkBulletCollision(bullet)) {
-		state.explosions.push(createExplosion(bullet.x, bullet.y+16, CONST.EXPLOSION_RADIUS));
-		bullet.isAlive = false;
-	}
-
-	var wind = computeWindForce();
-	bullet.v[0] += wind[0];
-	bullet.v[1] += wind[1] + CONST.GRAVITY;
-}
-
 function computeWindForce() {
 	var alpha = state.wind.angle * Math.PI / 180;
-	var r = state.wind.strength * CONST.WIND_STRENGTH_CALLIBRATOR;
+	var r = state.wind.strength;
 	return [r * Math.cos(alpha), r * Math.sin(alpha)];
 }
 
 function checkBulletCollision(bullet) {
-	var bulletRect = CONST.BULLET_RADIUS * 0.80;
-	var playerRect = CONST.PLAYER_HEIGHT/2 * 0.80;
+	var bulletRect = bullet.BULLET_RADIUS * 0.80;
 	for (var i = 0; i < state.player.length; ++i) {
+		var playerRect = state.player[i].PLAYER_HEIGHT/2 * 0.80;
 		if (Math.abs(bullet.x - state.player[i].x) < bulletRect + playerRect &&
 			Math.abs(bullet.y - state.player[i].y) < bulletRect + playerRect) {
 			return true;
@@ -405,27 +347,6 @@ function rotate(d, theta) {
 }
 
 
-function createBullet(player) {
-	var bullet = {};
-	var d = [player.orientation * player.dir[0], player.orientation * player.dir[1]];
-	rotate(d, player.orientation * player.angle * Math.PI/180);
-	bullet.x = player.x + d[0] * (CONST.BARREL_WIDTH + 20);
-	bullet.y = player.y + d[1] * (CONST.BARREL_WIDTH + 20);
-	var v = player.power / CONST.MAX_POWER * CONST.MAX_BULLET_THRUST;
-	bullet.v = [v * d[0], v * d[1]];
-	bullet.isAlive = true;
-	return bullet;
-}
-
-
-function initializeAsset() {
-	state.terrainBuffer = testAssets.get("test_asset04");
-	state.terrainData = state.terrainBuffer.getContext("2d").getImageData(0, 0, state.terrainBuffer.width, state.terrainBuffer.height);
-
-}
-
-
-
 
 
 
@@ -437,10 +358,10 @@ function render() {
 	state.g.translate(state.viewOffset[0], state.viewOffset[1]);
 	renderTerrain();
 	for(var i = 0; i < state.player.length; ++i) {
-		renderPlayer(state.player[i]);
+		state.player[i].render(state.g);
 	}
 	for(var i = 0; i < state.bullets.length; ++i) {
-		renderBullet(state.bullets[i]);
+		state.bullets[i].render(state.g);
 	}
 	state.g.restore();
 	renderControlBar();
@@ -509,58 +430,6 @@ function renderPowerBar() {
 	g.restore();
 }
 
-function renderBullet(bullet) {
-	var theta = Math.atan2(bullet.v[1], bullet.v[0]);
-	var g = state.g;
-	g.save();
-	g.fillStyle = "#f01";
-	g.lineWidth = 3;
-	// g.beginPath();
-	// g.arc(bullet.x, bullet.y, CONST.BULLET_RADIUS, 0, 2*Math.PI);
-	// g.fill();
-	g.translate(bullet.x, bullet.y);
-	g.rotate(theta);
-	g.fillRect(-CONST.BULLET_RADIUS - 10,-CONST.BULLET_RADIUS, CONST.BULLET_RADIUS+20, CONST.BULLET_RADIUS*2);
-	g.fillStyle = "white"
-	g.fillRect(-CONST.BULLET_RADIUS ,-CONST.BULLET_RADIUS, 10, CONST.BULLET_RADIUS*2);
-	g.strokeRect(-CONST.BULLET_RADIUS - 10,-CONST.BULLET_RADIUS, CONST.BULLET_RADIUS+20, CONST.BULLET_RADIUS*2);
-	g.restore();
-}
-
-function renderPlayer(player) {
-	var theta = Math.atan2(player.dir[1], player.dir[0]);
-
-	var g = state.g;
-	g.save();
-	g.translate(player.x, player.y);
-	g.rotate(theta);
-
-
-	// body
-	g.fillStyle = player.color;
-	g.lineWidth = 3;
-	g.fillRect(-CONST.PLAYER_WIDTH/2, -CONST.PLAYER_HEIGHT/2, CONST.PLAYER_WIDTH, CONST.PLAYER_HEIGHT);
-	g.strokeRect(-CONST.PLAYER_WIDTH/2, -CONST.PLAYER_HEIGHT/2, CONST.PLAYER_WIDTH, CONST.PLAYER_HEIGHT);
-
-	// barrel
-	g.save();
-	g.scale(player.orientation, 1);
-	g.rotate(-player.angle * Math.PI/180);
-	g.fillStyle = CONST.BARREL_COLOR;
-	g.lineWidth = 2;
-	g.fillRect(0, -CONST.BARREL_HEIGHT/2, CONST.BARREL_WIDTH, CONST.BARREL_HEIGHT);
-	g.strokeRect(0, -CONST.BARREL_HEIGHT/2, CONST.BARREL_WIDTH, CONST.BARREL_HEIGHT);
-	g.restore();
-
-	g.restore();
-
-
-	// var ret = computePivots(state.player);
-	// g.fillStyle = "black";
-	// g.fillRect(ret[0][0]-5, ret[0][1]-5, 10, 10);
-	// g.fillStyle = "blue";
-	// g.fillRect(ret[1][0]-5, ret[1][1]-5, 10, 10);
-}
 
 
 
