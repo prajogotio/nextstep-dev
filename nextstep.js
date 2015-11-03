@@ -13,10 +13,11 @@ var state = {
 	},
 	bullets : [],
 	explosions : [],
+	effects : [],
 	wind : {
 		angle : -90,
 		strength : 0,
-		bufferCaption : createText("0", 40),
+		bufferedCaption : createText("0", 50, "white", 2, "black"),
 	},
 };
 
@@ -50,6 +51,7 @@ var CONST = {
 	MAX_WIND_STRENGTH : 10,
 	EXPLOSION_RADIUS : 60,
 	WIND_STRENGTH_CALLIBRATOR : 0.02,
+	HEALTH_BAR_LENGTH : 80,
 };
 
 function initialize() {
@@ -136,24 +138,35 @@ function initializeAsset() {
 
 function spawnPlayers() {
 	var startHeight = 0;
-	state.player.push(new Player(state.display.width/2, startHeight, "#fab"));
-	state.player.push(new Player(state.display.width/2 + 300, startHeight, "#8af"));
-	state.player.push(new Player(state.display.width/2 + 800, startHeight, "#8e7"));
-	state.player.push(new Player(state.display.width/2 - 400, startHeight, "#99a"));
+	state.player.push(new Balroc(state.display.width/2, startHeight, "#fab", "prajogo"));
+	state.player.push(new Player(state.display.width/2 + 300, startHeight, "#8af", "chang_Hong"));
+	state.player.push(new Player(state.display.width/2 + 800, startHeight, "#8e7", "chinjieh"));
+	state.player.push(new Player(state.display.width/2 - 400, startHeight, "#99a", "nigel"));
 }
 
 function update() {
+	IOEventsHandler();
+
+	updateExplosions();
+	updatePlayers();
+	updateBullets();
+}
+
+function updateExplosions() {
 	for (var i = 0; i < state.explosions.length; ++i) {
 		updateExplosion(state.explosions[i]);
 	}
 	state.explosions = [];
+}
 
-	IOEventsHandler();
+function updatePlayers() {
 	for(var i = 0; i < state.player.length;++i) {
 		state.player[i].commandHandler(state);
 		state.player[i].movementUpdate();;
 	}
+}
 
+function updateBullets() {
 	var tmp = [];
 	for (var i = 0; i < state.bullets.length; ++i) {
 		state.bullets[i].update(state);
@@ -184,6 +197,26 @@ function IOEventsHandler() {
 }
 
 function updateExplosion(explosion) {
+	if(!explosion.isExploded) {
+		checkPlayerExplosionCollision(explosion);
+		explosion.isExploded = true;
+	}
+	destroyTerrainEffect(explosion);
+}
+
+function checkPlayerExplosionCollision(explosion) {
+	for (var i = 0; i < state.player.length; ++i) {
+		var player = state.player[i];
+		var dx = explosion.x - player.x;
+		var dy = explosion.y - player.y;
+		var dist = Math.sqrt(dx*dx + dy*dy);
+		if (dist < explosion.radius + player.PLAYER_WIDTH/2) {
+			player.receiveDamage(explosion.damage *  (1 - dist/(explosion.radius+player.PLAYER_WIDTH/2)));
+		}
+	}
+}
+
+function destroyTerrainEffect(explosion) {
 	var g = state.terrainBuffer.getContext("2d");
 	g.save();
 	g.globalCompositeOperation = 'destination-out';
@@ -197,11 +230,12 @@ function updateExplosion(explosion) {
 	state.terrainData = g.getImageData(0, 0, state.terrainBuffer.width, state.terrainBuffer.height);
 }
 
-function createExplosion(x, y, radius) {
+function createExplosion(x, y, radius, damage) {
 	return {
 		"x" : x,
 		"y" : y,
 		"radius" : radius,
+		"damage" : damage,
 		isExploded : false,
 	};
 }
@@ -357,14 +391,39 @@ function render() {
 	state.g.save();
 	state.g.translate(state.viewOffset[0], state.viewOffset[1]);
 	renderTerrain();
+	renderPlayers();
+	renderBullets();
+	renderExplosions();
+	renderEffects();
+	state.g.restore();
+
+	renderControlBar();
+}
+
+function renderPlayers() {
 	for(var i = 0; i < state.player.length; ++i) {
 		state.player[i].render(state.g);
 	}
+}
+
+function renderBullets() {
 	for(var i = 0; i < state.bullets.length; ++i) {
 		state.bullets[i].render(state.g);
 	}
-	state.g.restore();
-	renderControlBar();
+}
+
+function renderExplosions() {
+
+}
+
+function renderEffects() {
+	var tmp = [];
+	for (var i = 0; i < state.effects.length; ++i) {
+		state.effects[i].render(state.g);
+		state.effects[i].delta--;
+		if (state.effects[i].delta > 0) tmp.push(state.effects[i]);
+	}
+	state.effects = tmp;
 }
 
 function renderTerrain() {
@@ -393,29 +452,31 @@ function renderWindCompass() {
 			g.rotate((state.wind.angle + 90) * Math.PI/180);
 			gameAsset.renderAsset("wind_compass", g);
 		g.restore();
-		g.drawImage(state.wind.bufferCaption, 0, 0, state.wind.bufferCaption.width, state.wind.bufferCaption.height, -state.wind.bufferCaption.width/2, -state.wind.bufferCaption.height/2, state.wind.bufferCaption.width, state.wind.bufferCaption.height);
+		g.drawImage(state.wind.bufferedCaption, 0, 0, state.wind.bufferedCaption.width, state.wind.bufferedCaption.height, -state.wind.bufferedCaption.width/2, -state.wind.bufferedCaption.height/2, state.wind.bufferedCaption.width, state.wind.bufferedCaption.height);
 	g.restore();
 }
 
 function setWind(angle, strength) {
 	state.wind.angle = angle;
 	state.wind.strength = strength;
-	state.wind.bufferCaption = createText(""+strength, 40);
+	state.wind.bufferedCaption = createText(""+strength, 40, "white");
 }
 
-function createText(text, size) {
+function createText(text, size, color, lineWidth, strokeColor, font) {
 	var buffer = document.createElement("canvas");
 	var g = buffer.getContext("2d");
-	g.font = size+"px Arial";
-	g.fillStyle = "white";
+	g.font = size+"px " + (font || "Arial");
 	buffer.width = g.measureText(text).width;
 	buffer.height = size * 1.1;
-	g.fillStyle = "rgba(255, 255, 255, 0.9)";
-	g.font = size+"px Arial";
-	g.shadowColor = "black";
-	g.shadowBlur = "10";
-	g.fillText(text, 0, buffer.height / 1.1);
 
+	g.font = size+"px " + (font || "Arial");
+	g.fillStyle = color;
+	g.fillText(text, 0, buffer.height/1.3);
+	if (strokeColor) {
+		g.strokeStyle = strokeColor;
+		g.lineWidth = lineWidth;
+		g.strokeText(text, 0, buffer.height/1.3);
+	}
 	return buffer;
 }
 
@@ -430,6 +491,19 @@ function renderPowerBar() {
 	g.restore();
 }
 
-
+function createDamageEffect(x, y, dmg) {
+	var damageEffect = {};
+	damageEffect.x = x;
+	damageEffect.y = y;
+	damageEffect.delta = 40;
+	damageEffect.caption = createText(""+Math.floor(dmg), 30, "red", 1, "black");
+	damageEffect.render = function(g){
+		var w = damageEffect.caption.width;
+		var h = damageEffect.caption.height;
+		damageEffect.y -= 1;
+		g.drawImage(damageEffect.caption, 0, 0, w, h, damageEffect.x - w/2, damageEffect.y - h/2, w, h);
+	}
+	state.effects.push(damageEffect);
+}
 
 
