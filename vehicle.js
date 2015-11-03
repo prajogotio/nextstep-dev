@@ -42,7 +42,7 @@ Player.prototype.render = function(g) {
 
 	g.save();
 	g.rotate(theta);
-	this.renderAngleProtractor(g);
+	if (this == state.player[CONST.MAIN_PLAYER]) this.renderAngleProtractor(g);
 	this.renderBody(g);
 	this.renderBarrel(g);
 	g.restore();
