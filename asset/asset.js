@@ -90,7 +90,7 @@ var gameAsset = (function() {
 	g.restore();
 
 	// angle protractor
-		asset["angle_protractor"] = {
+	asset["angle_protractor"] = {
 		offsetX : 30,
 		offsetY : 100,
 		width : 100,
@@ -121,6 +121,131 @@ var gameAsset = (function() {
 
 	g.restore();
 
+
+	// DUAL
+	asset["dual"] = {
+		offsetX : 160,
+		offsetY : 100,
+		width : 200,
+		height : 60,
+	}
+	g.save();
+	g.translate(160, 100);
+
+	g.beginPath();
+	g.moveTo(30, 0);
+	g.lineTo(170, 0);
+	g.lineTo(200, 20);
+	g.lineTo(200, 40);
+	g.lineTo(170, 60);
+	g.lineTo(30, 60);
+	g.lineTo(0, 40);
+	g.lineTo(0, 20);
+	g.closePath();
+	g.globalAlpha = 0.6;
+	g.fillStyle = "#FC7C69";
+	g.fill();
+	g.lineWidth = 6;
+	g.strokeStyle = "#FF2814";
+	g.stroke();
+	g.globalAlpha = 1;
+
+	g.save();
+	g.restore();
+
+	g.fillStyle = "white";
+	g.strokeStyle = "black";
+	g.font = "bold 35px Arial";
+	g.fillText("Dual", 55, 30);
+	g.lineWidth = 2;
+	g.strokeText("Dual", 55, 30);
+	g.font = "bold 55px Arial";
+	g.lineWidth = 3;
+	g.fillText("Dual", 40, 50);
+	g.strokeText("Dual", 40, 50);
+	g.restore();
+
+
+
+	// power
+	asset["power"] = {
+		offsetX : 370,
+		offsetY : 100,
+		width : 200,
+		height : 60,
+	}
+	g.save();
+	g.translate(370, 100);
+
+	g.beginPath();
+	g.moveTo(30, 0);
+	g.lineTo(170, 0);
+	g.lineTo(200, 20);
+	g.lineTo(200, 40);
+	g.lineTo(170, 60);
+	g.lineTo(30, 60);
+	g.lineTo(0, 40);
+	g.lineTo(0, 20);
+	g.closePath();
+	g.fillStyle = "#001BFF";
+	g.globalAlpha = 0.5;
+	g.fill();
+	g.lineWidth = 6;
+	g.strokeStyle = "#001BFF";
+	g.stroke();
+	g.globalAlpha = 1;
+
+	g.save();
+	g.restore();
+
+	g.fillStyle = "white";
+	g.strokeStyle = "black";
+	g.font = "bold 43px Arial";
+	g.lineWidth = 3;
+	g.fillText("Power", 33, 45);
+	g.strokeText("Power", 33, 45);
+	g.restore();
+
+
+	// health
+	asset["health"] = {
+		offsetX : 570,
+		offsetY : 100,
+		width : 200,
+		height : 60,
+	}
+	g.save();
+	g.translate(570, 100);
+
+	g.beginPath();
+	g.moveTo(30, 0);
+	g.lineTo(170, 0);
+	g.lineTo(200, 20);
+	g.lineTo(200, 40);
+	g.lineTo(170, 60);
+	g.lineTo(30, 60);
+	g.lineTo(0, 40);
+	g.lineTo(0, 20);
+	g.closePath();
+	g.globalAlpha = 0.6;
+	g.fillStyle = "red";
+	g.fill();
+	g.lineWidth = 6;
+	g.strokeStyle = "red";
+	g.stroke();
+	g.globalAlpha = 1;
+
+
+	g.save();
+	g.restore();
+
+	g.fillStyle = "white";
+	g.strokeStyle = "black";
+	g.font = "bold 43px Arial";
+	g.lineWidth = 3;
+	g.fillText("Health", 33, 45);
+	g.strokeText("Health", 33, 45);
+	g.restore();
 
 	return asset;
 })();

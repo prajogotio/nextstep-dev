@@ -43,11 +43,11 @@ var CONST = {
 	CONTROL_BAR_COLOR : "rgba(0,0,0,0.6)",
 	CONTROL_BAR_HEIGHT : 100,
 	CONTROL_BAR_WIDTH : 1000,
-	MAX_POWER : 1500,
+	MAX_POWER : 200,
 	POWER_BAR_HEIGHT : 40,
 	POWER_BAR_COLOR : "#000",
 	POWER_BAR_RATIO : 0.8,
-	POWER_DELTA : 10,
+	POWER_DELTA : 1,
 	POWER_BAR_ACTIVE_COLOR : "#f00",
 	ANGLE_BAR_WIDTH : 80,
 	BULLET_RADIUS : 10,
@@ -59,6 +59,9 @@ var CONST = {
 	VIEW_SHIFT_RATIO : 1.5,
 	CAMERA_VIEW_UPPERLIMIT : 800,
 	PLAYER_VERTICAL_MOVEMENT_LIMIT : 8,
+	MAX_ITEM_BAR_SLOTS : 3,
+	ITEM_SLOT_WIDTH : 200,
+	ITEM_HEALTH_UP_EFFECT : 500,
 };
 
 function initialize() {
@@ -78,7 +81,7 @@ function initializeAsset() {
 
 function spawnPlayers() {
 	var startHeight = 0;
-	state.player.push(new Balroc(state.display.width/2, startHeight, "#fab", "prajogo"));
+	state.player.push(new Player(state.display.width/2, startHeight, "#fab", "prajogo"));
 	state.player.push(new Player(state.display.width/2 + 300, startHeight, "#8af", "chang_Hong"));
 	state.player.push(new Player(state.display.width/2 + 800, startHeight, "#8e7", "chinjieh"));
 	state.player.push(new Player(state.display.width/2 - 400, startHeight, "#99a", "nigel"));
@@ -161,6 +164,15 @@ function handleControlBarMouseClick(e) {
 	offset[1] -= y;
 	if (offset[1] > CONST.CONTROL_BAR_HEIGHT - CONST.POWER_BAR_HEIGHT) {
 		setPowerMarker(offset[0]/CONST.CONTROL_BAR_WIDTH);
+		return;
+	}
+	//check item bar
+	if (!state.player[CONST.MAIN_PLAYER].command["USE_ITEM"] || state.player[CONST.MAIN_PLAYER].command["USE_ITEM"].use == false) {
+		for (var i = 0; i < CONST.MAX_ITEM_BAR_SLOTS; ++i) {
+			if (i*CONST.ITEM_SLOT_WIDTH < offset[0] - CONST.ANGLE_BAR_WIDTH && offset[0] - CONST.ANGLE_BAR_WIDTH < (i+1)*CONST.ITEM_SLOT_WIDTH) {
+				state.player[CONST.MAIN_PLAYER].command["USE_ITEM"] = {use : true, which : i};
+			}
+		}
 	}
 }
 
@@ -206,8 +218,9 @@ function cameraEventsHandler() {
 		if (state.bullets.length == 0) {
 			state.viewMode["LOCKED_BULLET_VIEW_MODE"] = false;
 		} else {
-			state.viewOffset[0] = (-state.bullets[0].x + state.display.width/2)*0.8;
-			state.viewOffset[1] = (-state.bullets[0].y + state.display.height/2)*0.8;
+			var d = [-state.bullets[0].x + state.display.width/2, -state.bullets[0].y + state.display.height/2];
+			state.viewOffset[0] -= (state.viewOffset[0] - d[0])*0.21;
+			state.viewOffset[1] -= (state.viewOffset[1] - d[1])*0.21;
 		}
 	}
 	else if (state.viewMode["LOCKED_PLAYER_VIEW_MODE"]) {
@@ -466,6 +479,7 @@ function renderControlBar() {
 	renderPowerBar();
 	renderWindCompass();
 	renderAngleBar();
+	renderItemBar();
 	g.restore();
 }
 
@@ -478,6 +492,37 @@ function renderWindCompass() {
 			gameAsset.renderAsset("wind_compass", g);
 		g.restore();
 		g.drawImage(state.wind.bufferedCaption, 0, 0, state.wind.bufferedCaption.width, state.wind.bufferedCaption.height, -state.wind.bufferedCaption.width/2, -state.wind.bufferedCaption.height/2, state.wind.bufferedCaption.width, state.wind.bufferedCaption.height);
+	g.restore();
+}
+
+function renderItemBar() {
+	var g = state.g;
+	g.save();
+	g.translate((state.display.width - CONST.CONTROL_BAR_WIDTH)/2 + CONST.ANGLE_BAR_WIDTH, 
+				state.display.height - CONST.CONTROL_BAR_HEIGHT);
+	var h = CONST.CONTROL_BAR_HEIGHT - CONST.POWER_BAR_HEIGHT;
+	g.fillStyle = "rgba(30,30,30,0.7)";
+	g.strokeStyle = "rgba(120, 120, 45, 0.4)";
+	g.lineWidth = 2;
+
+
+	for (var i = 0; i < CONST.MAX_ITEM_BAR_SLOTS; ++i) {
+		g.fillRect(i * CONST.ITEM_SLOT_WIDTH , 0, CONST.ITEM_SLOT_WIDTH, h);
+	}
+
+	for (var i = 0; i < CONST.MAX_ITEM_BAR_SLOTS; ++i) {
+		if (state.player[CONST.MAIN_PLAYER].itemSlot[i] != "empty") {
+			g.save();
+			g.translate(i * CONST.ITEM_SLOT_WIDTH + CONST.ITEM_SLOT_WIDTH/2, h/2);
+			gameAsset.renderAsset(state.player[CONST.MAIN_PLAYER].itemSlot[i], g);
+			g.restore();
+		} 
+	}
+	
+	for(var i = 0; i < CONST.MAX_ITEM_BAR_SLOTS; ++i) {
+		g.strokeRect(i * CONST.ITEM_SLOT_WIDTH, 0, CONST.ITEM_SLOT_WIDTH, h);
+	}
+
 	g.restore();
 }
 
@@ -526,7 +571,7 @@ function renderPowerBar() {
 		g.strokeRect(x+1+i*CONST.CONTROL_BAR_WIDTH/4, y+1, (CONST.CONTROL_BAR_WIDTH-5)/4, CONST.POWER_BAR_HEIGHT-2);
 	}
 	g.fillStyle = "yellow"
-	g.fillRect(x + state.powerBar.marker * CONST.CONTROL_BAR_WIDTH, y+1, 3, CONST.POWER_BAR_HEIGHT-2);
+	g.fillRect(x + state.powerBar.marker * CONST.CONTROL_BAR_WIDTH, y+1, 7, CONST.POWER_BAR_HEIGHT-2);
 	g.restore();
 }
 
@@ -611,3 +656,21 @@ function createDestroyedTerrainEffect(bullet, assetName) {
 	}
 }
 
+function createUseItemEffect(player) {
+	var effect = {};
+	effect.x = player.x;
+	effect.y = player.y;
+	effect.r = 7;
+	effect.delta = 50;
+	effect.isAlive = true;
+	effect.render = function(g) {
+		if (effect.r < 70) effect.r *= 1.09;
+		effect.delta--;
+		g.beginPath();
+		g.fillStyle = "rgba(200, 244, 120, 0.5)";
+		g.arc(effect.x, effect.y, effect.r, 0, 2*Math.PI);
+		g.fill();
+		if (effect.delta <= 0) effect.isAlive = false;
+	}
+	return effect;
+}

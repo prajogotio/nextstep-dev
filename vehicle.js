@@ -8,7 +8,7 @@ function Player(x, y, color, name) {
 	this.BARREL_HEIGHT = CONST.BARREL_HEIGHT;
 	this.BARREL_COLOR = CONST.BARREL_COLOR;
 	this.MAX_BULLET_THRUST = CONST.MAX_BULLET_THRUST;
-	this.MAX_HEALTH_POINT = 1000;
+	this.MAX_HEALTH_POINT = 1700;
 	this.PLAYER_VERTICAL_MOVEMENT_LIMIT = CONST.PLAYER_VERTICAL_MOVEMENT_LIMIT;
 
 	this.name = name;
@@ -24,6 +24,8 @@ function Player(x, y, color, name) {
 	this.command = {};
 	this.power = 0;
 	this.isAlive = true;
+
+	this.itemSlot = ["dual", "power", "health"];
 
 	this.damagedDelta = 0;
 
@@ -110,11 +112,17 @@ Player.prototype.renderHealthBar = function(g) {
 Player.prototype.commandHandler = function(state) {
 	if (this.command["ADJUST_ANGLE_UP"]) {
 		this.angle += CONST.ANGLE_DELTA;
-		if (this.angle > this.ANGLE_UPPER_LIMIT) this.angle = this.ANGLE_UPPER_LIMIT;
+		if (this.angle > this.ANGLE_UPPER_LIMIT) {
+			this.angle = this.ANGLE_UPPER_LIMIT;
+		}
+		this.command["ADJUST_ANGLE_UP"] = false;
 	}
 	if (this.command["ADJUST_ANGLE_DOWN"]) {
 		this.angle -= CONST.ANGLE_DELTA;
-		if (this.angle < this.ANGLE_LOWER_LIMIT) this.angle = this.ANGLE_LOWER_LIMIT;
+		if (this.angle < this.ANGLE_LOWER_LIMIT) {
+			this.angle = this.ANGLE_LOWER_LIMIT;
+		}
+		this.command["ADJUST_ANGLE_DOWN"] = false;
 	}
 	if (this.command["CHARGE_POWER"]) {
 		this.command["CHARGING_POWER"] = true;
@@ -128,11 +136,38 @@ Player.prototype.commandHandler = function(state) {
 			state.powerBar.power = this.power;
 		}
 	}
+	if (this.command["ANOTHER_SHOOT"]) {
+		this.shootingDelay--;
+		if (this.shootingDelay <= 0) {
+			state.bullets.push(this.createBullet());
+			this.command["ANOTHER_SHOOT"] = false;
+		}
+	}
 	if (this.command["SHOOT"]) {
 		state.bullets.push(this.createBullet());
+		if (this.shootingPowerUp == "dual") {
+			this.command["ANOTHER_SHOOT"] = true;
+			this.shootingDelay = 50;
+		}
+		this.shootingPowerUp = "none";
 		this.command["SHOOT"] = false;
 		state.viewMode["LOCKED_BULLET_VIEW_MODE"] = true;
 		state.viewMode["LOCKED_PLAYER_VIEW_MODE"] = false;
+	}
+	if (this.command["USE_ITEM"] && this.command["USE_ITEM"].use) {
+		var i = this.command["USE_ITEM"].which;
+		if (this.itemSlot[i] != "empty"){
+			state.effects.push(createUseItemEffect(this));
+			if (this.itemSlot[i] == "health") {
+				this.hp += CONST.ITEM_HEALTH_UP_EFFECT;
+				if (this.hp > this.MAX_HEALTH_POINT) this.hp = this.MAX_HEALTH_POINT;
+			} else if (this.itemSlot[i] == "dual") {
+				this.shootingPowerUp = "dual";
+			} else if (this.itemSlot[i] == "power") {
+				this.shootingPowerUp = "power";
+			}
+			this.itemSlot[i] = "empty";
+		}
 	}
 }
 
@@ -152,6 +187,9 @@ Player.prototype.createBullet = function() {
 }
 
 Player.prototype.bulletFactory = function(x, y, v) {
+	if (this.shootingPowerUp == "power") {
+		return new PowerBullet(x, y, v);
+	}
 	return new Bullet(x, y, v);
 }
 
@@ -243,26 +281,16 @@ Bullet.prototype.renderBody = function(g) {
 }
 
 
-
-
-
-function Balroc(x, y, color, name) {
-	Player.call(this, x, y, color, name);
-}
-
-Balroc.prototype = Object.create(Player.prototype);
-
-function HeavyArmor(x, y, v) {
+function PowerBullet(x, y, v) {
 	Bullet.call(this, x, y, v);
-	this.GRAVITY = CONST.GRAVITY + 0.01;
-	this.BULLET_RADIUS = CONST.BULLET_RADIUS + 3;
+	this.BULLET_RADIUS += 4;
+	this.EXPLOSION_DAMAGE += 800;
 }
 
-HeavyArmor.prototype = Object.create(Bullet.prototype);
+PowerBullet.prototype = Object.create(Bullet.prototype);
 
-Balroc.prototype.bulletFactory = function(x, y, v){
-	return new HeavyArmor(x, y, v); 
-}
+
+
 
 
 
